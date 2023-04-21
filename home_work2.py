@@ -1,35 +1,9 @@
-import json
-import re
+def to_dict(lst):
+    my_dict = {}
+    for i in range(0, len(lst), 2):
+        my_dict[lst[i]] = lst[i+1]
+    return my_dict
 
-users = []
-with open('/Users/goncharovvitalii/Downloads/users-3.txt', 'r') as file:
-    for line in file:
-        line = line.strip()
-        if not line:
-            continue
-
-        fields = [field.strip() for field in line.split(';')]
-        name = fields[0]
-
-        age = None
-        if len(fields) > 1 and fields[1]:
-            try:
-                age = int(fields[1])
-            except (ValueError, TypeError):
-                pass
-
-        phones = []
-        if len(fields) > 2 and fields[2]:
-            phones = [phone.strip() for phone in fields[2].split(',')]
-
-        user = {'name': name, 'age': age, 'phones': phones}
-        users.append(user)
-
-with open('users_out.json', 'w') as file:
-    json.dump(users, file)
-
-with open('users_out.txt', 'w') as file:
-    for user in users:
-        age = str(user['age']) if user['age'] is not None else ''
-        phones = ','.join(user['phones']) if user['phones'] else ''
-        file.write(f"{user['name']};{age};{phones}\n")
+lst = [1, 2, 3, 4, 5, 6, 7, 8]
+my_dict = to_dict(lst)
+print(my_dict)  # {1: 2, 3: 4}
