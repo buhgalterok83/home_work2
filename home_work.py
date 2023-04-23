@@ -1,16 +1,18 @@
-lst = [4, 2, 1, 5, 2, 5, 7]
-
+lst = []
 def second_largest_number(lst):
-    if len(list(lst)) < 2:
+    if len(lst) < 2 or all(elem == lst[0] for elem in lst):
         return None
-    largest = second_largest = float('-inf')
+    largest = float('-inf')
     for num in lst:
-        if num >= largest:
-            second_largest = largest
+        if num > largest:
             largest = num
-        elif num > second_largest and num != largest:
+    second_largest = float('-inf')
+    for num in lst:
+        if num != largest and num > second_largest:
             second_largest = num
-
-    return second_largest if second_largest != float('-inf') else None
+    if lst.count(largest) > 1 and second_largest != float('-inf'):
+        return second_largest
+    else:
+        return largest if second_largest == float('-inf') else second_largest
 
 print(second_largest_number(lst))
