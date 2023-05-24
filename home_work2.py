@@ -1,18 +1,27 @@
 import time
 
 class Timer:
+    def __init__(self):
+        self.elapsed_time = 0
+        self.start_time = None
+
     def __enter__(self):
         self.start_time = time.time()
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        self.end_time = time.time()
-        self.elapsed_time = self.end_time - self.start_time
+        self.elapsed_time += time.time() - self.start_time
+        self.start_time = None
 
     def reset(self):
-        self.start_time = time.time()
-        self.end_time = None
-        self.elapsed_time = None
+        self.elapsed_time = 0
+
+    def __call__(self, func):
+        def wrapper(*args, **kwargs):
+            with self:
+                return func(*args, **kwargs)
+        return wrapper
+
 
 with Timer() as t:
     time.sleep(1)
@@ -31,3 +40,4 @@ t2.reset()
 with t2:
     time.sleep(2)
 print(t2.elapsed_time)  # ~2 seconds
+
