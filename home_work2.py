@@ -1,9 +1,33 @@
-def to_dict(lst):
-    my_dict = {}
-    for i in range(0, len(lst), 2):
-        my_dict[lst[i]] = lst[i+1]
-    return my_dict
+import time
 
-lst = [1, 2, 3, 4, 5, 6, 7, 8]
-my_dict = to_dict(lst)
-print(my_dict)  # {1: 2, 3: 4}
+class Timer:
+    def __enter__(self):
+        self.start_time = time.time()
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.end_time = time.time()
+        self.elapsed_time = self.end_time - self.start_time
+
+    def reset(self):
+        self.start_time = time.time()
+        self.end_time = None
+        self.elapsed_time = None
+
+with Timer() as t:
+    time.sleep(1)
+print(t.elapsed_time)  # ~1 second
+
+time.sleep(1)
+with t:
+    time.sleep(2)
+print(t.elapsed_time)  # ~3 seconds
+
+with Timer() as t2:
+    time.sleep(1)
+print(t2.elapsed_time)  # ~1 second
+
+t2.reset()
+with t2:
+    time.sleep(2)
+print(t2.elapsed_time)  # ~2 seconds
