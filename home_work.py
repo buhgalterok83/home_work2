@@ -1,101 +1,92 @@
-from abc import ABC, abstractmethod
+import sqlite3
 
-class University:
-    def __init__(self, name, address):
-        self._name = name
-        self._address = address
-        self._departments = []
+class DatabaseTable:
+    def __init__(self, table_name, fields):
+        self.table_name = table_name
+        self.fields = fields
+        self.connection = None
+        self.cursor = None
 
-    def add_department(self, department):
-        self._departments.append(department)
+        self.create_table()
 
-    def remove_department(self, department):
-        self._departments.remove(department)
+    def connect(self):
+        if not self.connection:
+            self.connection = sqlite3.connect('database.db')
+            self.cursor = self.connection.cursor()
 
-    def find_department(self, name):
-        for department in self._departments:
-            if department.get_name() == name:
-                return department
-        return None
+    def disconnect(self):
+        if self.connection:
+            self.cursor.close()
+            self.connection.close()
+            self.connection = None
+            self.cursor = None
 
-class Department:
-    def __init__(self, name, code, head):
-        self._name = name
-        self._code = code
-        self._head = head
+    def create_table(self):
+        self.connect()
+        query = f"CREATE TABLE IF NOT EXISTS {self.table_name} ({','.join(self.fields)})"
+        self.cursor.execute(query)
+        self.connection.commit()
+        self.disconnect()
 
-    def get_name(self):
-        return self._name
+    def get_all_records(self):
+        self.connect()
+        query = f"SELECT * FROM {self.table_name}"
+        self.cursor.execute(query)
+        records = self.cursor.fetchall()
+        self.disconnect()
+        return records
 
-    def get_head(self):
-        return self._head
+    def add_records(self, records):
+        self.connect()
+        query = f"INSERT INTO {self.table_name} VALUES ({','.join(['?']*len(self.fields))})"
+        self.cursor.executemany(query, records)
+        self.connection.commit()
+        self.disconnect()
 
-class Professor:
-    def __init__(self, name, expertise):
-        self._name = name
-        self._expertise = expertise
+    def update_records(self, condition, values):
+        self.connect()
+        query = f"UPDATE {self.table_name} SET {','.join([f'{field}=?' for field in values.keys()])} WHERE {condition}"
+        self.cursor.execute(query, list(values.values()))
+        self.connection.commit()
+        self.disconnect()
 
-    def get_name(self):
-        return self._name
+    def get_records_by_condition(self, condition):
+        self.connect()
+        query = f"SELECT * FROM {self.table_name} WHERE {condition}"
+        self.cursor.execute(query)
+        records = self.cursor.fetchall()
+        self.disconnect()
+        return records
 
-    def get_department(self):
-        return self._department
+    def delete_records_by_condition(self, condition):
+        self.connect()
+        query = f"DELETE FROM {self.table_name} WHERE {condition}"
+        self.cursor.execute(query)
+        self.connection.commit()
+        self.disconnect()
+# Создание экземпляра класса для таблицы "users" с полями "id", "name", "email"
+table = DatabaseTable("users", ["id INTEGER", "name TEXT", "email TEXT"])
 
-class Student:
-    def __init__(self, name, student_id, major):
-        self._name = name
-        self._student_id = student_id
-        self._major = major
-        self._courses = []
+# Добавление записей
+records_to_add = [(1, "John Doe", "john@example.com"), (2, "Jane Smith", "jane@example.com")]
+table.add_records(records_to_add)
 
-    def get_name(self):
-        return self._name
+# Получение всех записей
+all_records = table.get_all_records()
+for record in all_records:
+    print(record)
 
-    def get_major(self):
-        return self._major
+# Обновление записей, у которых поле "name" равно "John Doe"
+condition = "name = 'John Doe'"
+new_values = {"email": "new_email@example.com"}
+table.update_records(condition, new_values)
 
-    def enroll_course(self, course):
-        self._courses.append(course)
+# Получение записей по условию
+condition = "name LIKE 'J%'"
+filtered_records = table.get_records_by_condition(condition)
+for record in filtered_records:
+    print(record)
 
-    def drop_course(self, course):
-        self._courses.remove(course)
-
-class Course:
-    def __init__(self, name, code):
-        self._name = name
-        self._code = code
-
-    def get_name(self):
-        return self._name
-
-# Створюємо університет
-university = University("Назва університету", "Адреса університету")
-
-# Створюємо відділення
-department1 = Department("Відділення 1", "Код 1", Professor("Професор 1", "Експертиза 1"))
-department2 = Department("Відділення 2", "Код 2", Professor("Професор 2", "Експертиза 2"))
-
-# Додаємо відділення до університету
-university.add_department(department1)
-university.add_department(department2)
-
-# Створюємо студента
-student1 = Student("Студент 1", "ID1", "Спеціальність 1")
-student2 = Student("Студент 2", "ID2", "Спеціальність 2")
-
-# Записуємо студента на курс
-course1 = Course("Курс 1", "Код 1")
-course2 = Course("Курс 2", "Код 2")
-student1.enroll_course(course1)
-student2.enroll_course(course2)
-
-# Виводимо інформацію про студента
-print(f"Студент 1: {student1.get_name()}, Спеціальність: {student1.get_major()}")
-print(f"Курси студента 1: {[course.get_name() for course in student1._courses]}")
-
-# Виводимо інформацію про відділення
-print(f"Відділення 1: {department1.get_name()}, Код: {department1._code}")
-print(f"Керівник відділення 1: {department1.get_head().get_name()}, Експертиза: {department1.get_head()._expertise}")
-
-# Виводимо інформацію про університет
-print(f"Університет: {university._name}, Адреса: {university._address}")
+# Удаление записей, у которых поле "email" содержит "example.com"
+condition = "email LIKE '%example.com%'"
+table.delete_records_by_condition(condition)
