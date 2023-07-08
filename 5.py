@@ -1,32 +1,71 @@
-import json
-import re
+import requests
 
-users = []
-with open('/Users/goncharovvitalii/Downloads/users-3.txt', 'r') as file:
-    for line in file:
-        line = line.strip()
-        if not line:
-            continue
+# Функция для создания пользователя
+def create_user():
+    endpoint = "https://gorest.co.in/public-api/users"
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer YOUR_ACCESS_TOKEN"  # Замените YOUR_ACCESS_TOKEN на ваш токен авторизации
+    }
+    data = {
+        "name": "Test User",
+        "email": "testuser@example.com",
+        "gender": "male",
+        "status": "active"
+    }
 
-        name, age_str, *phones = line.split(';')
-        name = name.strip()
-        phones = [phone.strip() for phone in phones]
+    response = requests.post(endpoint, headers=headers, json=data)
+    user_data = response.json()
+    user_id = user_data["data"]["id"]
+    return user_id
 
-        age = None
-        if age_str:
-            match = re.match(r'^\d+$', age_str)
-            if match:
-                age = int(age_str)
+# Функция для создания поста
+def create_post(user_id, title, body):
+    endpoint = "https://gorest.co.in/public-api/posts"
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer YOUR_ACCESS_TOKEN"  # Замените YOUR_ACCESS_TOKEN на ваш токен авторизации
+    }
+    data = {
+        "user_id": user_id,
+        "title": title,
+        "body": body
+    }
 
-        user = {'name': name, 'age': age, 'phones': phones}
-        users.append(user)
+    response = requests.post(endpoint, headers=headers, json=data)
+    post_data = response.json()
+    post_id = post_data["data"]["id"]
+    return post_id
 
-with open('users_out.json', 'w') as file:
-    json.dump(users, file)
+# Функция для удаления пользователя
+def delete_user(user_id):
+    endpoint = f"https://gorest.co.in/public-api/users/{user_id}"
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer YOUR_ACCESS_TOKEN"  # Замените YOUR_ACCESS_TOKEN на ваш токен авторизации
+    }
 
-with open('users_out.txt', 'w') as file:
-    for user in users:
-        age = str(user['age']).replace(' ', '') if user['age'] is not None else ''
-        phones = ','.join([phone.replace(' ', '') for phone in user['phones']]) if user['phones'] else ''
-        file.write(f"{user['name']};{age};{phones}\n")
+    response = requests.delete(endpoint, headers=headers)
+    return response.status_code
 
+# Тест для проверки создания поста
+def test_create_post():
+    # Создаем пользователя
+    user_id = create_user()
+
+    # Создаем пост
+    title = "Test Post"
+    body = "This is a test post."
+    post_id = create_post(user_id, title, body)
+
+    # Проверяем успешное создание поста
+    assert post_id is not None, "Failed to create post"
+
+    # Удаляем пользователя после теста
+    status_code = delete_user(user_id)
+
+    # Проверяем успешное удаление пользователя
+    assert status_code == 204, "Failed to delete user"
+
+# Запуск теста
+test_create_post()
