@@ -1,71 +1,71 @@
 import requests
+import json
+import unittest
 
-# Функция для создания пользователя
-def create_user():
-    endpoint = "https://gorest.co.in/public-api/users"
-    headers = {
-        "Content-Type": "application/json",
-        "Authorization": "Bearer YOUR_ACCESS_TOKEN"  # Замените YOUR_ACCESS_TOKEN на ваш токен авторизации
-    }
-    data = {
-        "name": "Test User",
-        "email": "testuser@example.com",
-        "gender": "male",
-        "status": "active"
-    }
 
-    response = requests.post(endpoint, headers=headers, json=data)
-    user_data = response.json()
-    user_id = user_data["data"]["id"]
-    return user_id
+class PostCreationTest(unittest.TestCase):
+    base_url = 'https://gorest.co.in/public-api'
+    token = '<YOUR_ACCESS_TOKEN>'
 
-# Функция для создания поста
-def create_post(user_id, title, body):
-    endpoint = "https://gorest.co.in/public-api/posts"
-    headers = {
-        "Content-Type": "application/json",
-        "Authorization": "Bearer YOUR_ACCESS_TOKEN"  # Замените YOUR_ACCESS_TOKEN на ваш токен авторизации
-    }
-    data = {
-        "user_id": user_id,
-        "title": title,
-        "body": body
-    }
+    @classmethod
+    def setUpClass(cls):
+        # Создание пользователя для тестов
+        cls.user_id = cls.create_user()
 
-    response = requests.post(endpoint, headers=headers, json=data)
-    post_data = response.json()
-    post_id = post_data["data"]["id"]
-    return post_id
+    @classmethod
+    def tearDownClass(cls):
+        # Удаление пользователя после тестов
+        cls.delete_user(cls.user_id)
 
-# Функция для удаления пользователя
-def delete_user(user_id):
-    endpoint = f"https://gorest.co.in/public-api/users/{user_id}"
-    headers = {
-        "Content-Type": "application/json",
-        "Authorization": "Bearer YOUR_ACCESS_TOKEN"  # Замените YOUR_ACCESS_TOKEN на ваш токен авторизации
-    }
+    @classmethod
+    def create_user(cls):
+        headers = {
+            'Authorization': f'Bearer {cls.token}',
+            'Content-Type': 'application/json',
+        }
+        data = {
+            'name': 'Test User',
+            'gender': 'Male',
+            'email': 'testuser@example.com',
+            'status': 'Active'
+        }
+        response = requests.post(f'{cls.base_url}/users', headers=headers, json=data)
+        user_id = response.json().get('data', {}).get('id')
+        return user_id
 
-    response = requests.delete(endpoint, headers=headers)
-    return response.status_code
+    @classmethod
+    def delete_user(cls, user_id):
+        headers = {
+            'Authorization': f'Bearer {cls.token}'
+        }
+        response = requests.delete(f'{cls.base_url}/users/{user_id}', headers=headers)
+        status_code = response.status_code
+        assert status_code == 204, "Failed to delete user"
 
-# Тест для проверки создания поста
-def test_create_post():
-    # Создаем пользователя
-    user_id = create_user()
+    def create_post(self, post_data):
+        headers = {
+            'Authorization': f'Bearer {self.token}',
+            'Content-Type': 'application/json',
+        }
+        response = requests.post(f'{self.base_url}/posts', headers=headers, json=post_data)
+        return response
 
-    # Создаем пост
-    title = "Test Post"
-    body = "This is a test post."
-    post_id = create_post(user_id, title, body)
+    def test_post_creation(self):
+        # Параметры поста для теста
+        post_data = {
+            'title': 'Test Post',
+            'body': 'This is a test post'
+        }
 
-    # Проверяем успешное создание поста
-    assert post_id is not None, "Failed to create post"
+        response = self.create_post(post_data)
+        self.assertEqual(response.status_code, 201)
+        post_id = response.json().get('data', {}).get('id')
+        assert post_id is not None, "Failed to create post"
 
-    # Удаляем пользователя после теста
-    status_code = delete_user(user_id)
+        # Проверяем, что созданный пост соответствует ожиданиям
+        self.assertEqual(response.json().get('data', {}).get('title'), post_data['title'])
+        self.assertEqual(response.json().get('data', {}).get('body'), post_data['body'])
 
-    # Проверяем успешное удаление пользователя
-    assert status_code == 204, "Failed to delete user"
 
-# Запуск теста
-test_create_post()
+if __name__ == '__main__':
+    unittest.main()
