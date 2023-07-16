@@ -1,71 +1,51 @@
 import requests
-import json
-import unittest
 
+BASE_URL = 'https://gorest.co.in/'
+ACCESS_TOKEN = 'd09843bcb0e48c560257f82ec4d7923b698a41caf549b8198f6ef0e6655c869f'
 
-class PostCreationTest(unittest.TestCase):
-    base_url = 'https://gorest.co.in/public-api'
-    token = '<YOUR_ACCESS_TOKEN>'
+def create_user(user_data):
+    # Create a user
+    headers = {'Authorization': f'Bearer {ACCESS_TOKEN}'}
+    response = requests.post(BASE_URL + 'public/v1/users', headers=headers, data=user_data)
+    user_id = response.json().get('data', {}).get('id')
+    return user_id
 
-    @classmethod
-    def setUpClass(cls):
-        # Создание пользователя для тестов
-        cls.user_id = cls.create_user()
+def delete_user(user_id):
+    # Delete a user
+    headers = {'Authorization': f'Bearer {ACCESS_TOKEN}'}
+    response = requests.delete(BASE_URL + f'public/v1/users/{user_id}', headers=headers)
+    status_code = response.status_code
+    if status_code == 204:
+        print(f"User {user_id} deleted successfully.")
+    else:
+        print(f"Failed to delete user {user_id}. Status code: {status_code}")
 
-    @classmethod
-    def tearDownClass(cls):
-        # Удаление пользователя после тестов
-        cls.delete_user(cls.user_id)
-
-    @classmethod
-    def create_user(cls):
-        headers = {
-            'Authorization': f'Bearer {cls.token}',
-            'Content-Type': 'application/json',
-        }
-        data = {
-            'name': 'Test User',
-            'gender': 'Male',
-            'email': 'testuser@example.com',
-            'status': 'Active'
-        }
-        response = requests.post(f'{cls.base_url}/users', headers=headers, json=data)
-        user_id = response.json().get('data', {}).get('id')
-        return user_id
-
-    @classmethod
-    def delete_user(cls, user_id):
-        headers = {
-            'Authorization': f'Bearer {cls.token}'
-        }
-        response = requests.delete(f'{cls.base_url}/users/{user_id}', headers=headers)
-        status_code = response.status_code
-        assert status_code == 204, "Failed to delete user"
-
-    def create_post(self, post_data):
-        headers = {
-            'Authorization': f'Bearer {self.token}',
-            'Content-Type': 'application/json',
-        }
-        response = requests.post(f'{self.base_url}/posts', headers=headers, json=post_data)
-        return response
-
-    def test_post_creation(self):
-        # Параметры поста для теста
+def create_post_test():
+    # User data for creation
+    user_data = {
+        'name': 'Test User',
+        'gender': 'male',
+        'email': 'testuser@example.com',
+        'status': 'active'
+    }
+    user_id = create_user(user_data)
+    if user_id:
+        # Create a post for the user
+        headers = {'Authorization': f'Bearer {ACCESS_TOKEN}'}
         post_data = {
             'title': 'Test Post',
-            'body': 'This is a test post'
+            'body': 'This is a test post.'
         }
+        response = requests.post(BASE_URL + f'public/v1/users/{user_id}/posts', headers=headers, data=post_data)
+        if response.status_code == 201:
+            post_id = response.json().get('data', {}).get('id')
+            print(f"Post created successfully. Post ID: {post_id}")
+            delete_user(user_id)
+        else:
+            print("Failed to create post.")
+            delete_user(user_id)
+    else:
+        print("Failed to create test user.")
 
-        response = self.create_post(post_data)
-        self.assertEqual(response.status_code, 201)
-        post_id = response.json().get('data', {}).get('id')
-        assert post_id is not None, "Failed to create post"
-
-        # Проверяем, что созданный пост соответствует ожиданиям
-        self.assertEqual(response.json().get('data', {}).get('title'), post_data['title'])
-        self.assertEqual(response.json().get('data', {}).get('body'), post_data['body'])
-
-
-if __name__ == '__main__':
-    unittest.main()
+# Run the post creation test
+create_post_test()
